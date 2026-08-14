@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="description" content="ADUR Live Cosmic Dashboard - Realtidsuppdaterad linjär graf för Aduro Clean Technologies (NASDAQ: ADUR), valutakurser för DKK, EUR, SEK och USD, live klockor för USA och Sverige samt senaste aktienyheter.">
+  <meta name="theme-color" content="#03060f">
+  
+  <title>ADUR Cosmic Live Hub | Aduro Clean Technologies (NASDAQ: ADUR)</title>
+
+  <!-- Google Fonts: Orbitron, Space Grotesk & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Huvudstilmall -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- TradingView Base Library -->
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+</head>
+<body>
+
+  <!-- Rymdpartikel-bakgrund (Canvas) -->
+  <canvas id="cosmic-canvas"></canvas>
+
+  <div class="app-wrapper">
+
+    <!-- ==========================================================================
+         TOP HUD BAR: REAL-TIME CLOCKS & LIVE CURRENCY STREAM
+         ========================================================================== -->
+    <aside class="top-bar" aria-label="Realtidsinformation & Telemetri">
+      <div class="top-clocks-wrapper">
+        <!-- 🇸🇪 Klocka Sverige -->
+        <div class="clock-item" title="Lokal tid i Sverige (Stockholm / CET)">
+          <div class="clock-flag-wrap">
+            <span class="clock-orbit"></span>
+            <span class="clock-flag">🇸🇪</span>
+          </div>
+          <span class="clock-label">Stockholm:</span>
+          <span id="clock-swe" class="clock-time">--:--:--</span>
+          <span class="clock-tz">UTC+2</span>
+        </div>
+
+        <!-- 🇺🇸 Klocka USA -->
+        <div class="clock-item" title="Östkusttid i USA (New York / Wall Street EST/EDT)">
+          <div class="clock-flag-wrap">
+            <span class="clock-orbit"></span>
+            <span class="clock-flag">🇺🇸</span>
+          </div>
+          <span class="clock-label">New York:</span>
+          <span id="clock-usa" class="clock-time">--:--:--</span>
+          <span class="clock-tz">UTC-4</span>
+        </div>
+
+        <!-- Börsstatus Badge -->
+        <div id="market-status-badge" class="market-badge" title="Status för amerikanska börsen (NASDAQ)">
+          <span class="pulse-dot"></span>
+          <span id="market-status-text">NASDAQ: Telemetri...</span>
+        </div>
+      </div>
+
+      <!-- Snabböversikt Valutakurser Ticker -->
+      <div class="currency-quick-bar" aria-label="Snabbkurser">
+        <div class="currency-pill" id="pill-box-usd-sek" title="USD till SEK växelkurs">
+          <span class="currency-pair">USD/SEK:</span>
+          <span id="pill-usd-sek" class="currency-val">-- kr</span>
+        </div>
+        <div class="currency-pill" id="pill-box-usd-dkk" title="USD till DKK växelkurs">
+          <span class="currency-pair">USD/DKK:</span>
+          <span id="pill-usd-dkk" class="currency-val">-- kr</span>
+        </div>
+        <div class="currency-pill" id="pill-box-eur-sek" title="EUR till SEK växelkurs">
+          <span class="currency-pair">EUR/SEK:</span>
+          <span id="pill-eur-sek" class="currency-val">-- kr</span>
+        </div>
+        <div class="currency-pill" id="pill-box-eur-usd" title="EUR till USD växelkurs">
+          <span class="currency-pair">EUR/USD:</span>
+          <span id="pill-eur-usd" class="currency-val">$--</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================================================
+         HEADER & LIVE TELEMETRY HERO STRIP
+         ========================================================================== -->
+    <header class="site-header">
+      <div class="header-main-row">
+        <div class="brand-section">
+          <div class="brand-icon">AD</div>
+          <div class="brand-titles">
+            <h1>
+              Aduro Clean Technologies 
+              <span class="ticker-tag">NASDAQ: ADUR</span>
+            </h1>
+            <p class="brand-subtitle">Cirkulär plaståtervinning & förnyelsebar energi • Kosmisk Finansiell Hub</p>
+          </div>
+        </div>
+
+        <div class="header-controls">
+          <button id="btn-manual-refresh" class="btn" title="Uppdatera all telemetri">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span>Uppdatera</span>
+          </button>
+          <a href="https://maktie.info/" target="_blank" rel="noopener noreferrer" class="btn btn-primary" title="Öppna referenssida">
+            <span>maktie.info ↗</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Live Kursband i Valutor (USD, SEK, EUR, DKK) med Levande Ticks -->
+      <section class="rates-strip-container" aria-label="ADUR Aktiekurs i olika valutor">
+        <div class="rate-card" id="card-wrap-usd">
+          <div class="rate-card-header">
+            <span class="rate-currency-label">🇺🇸 USA Dollar</span>
+            <span class="rate-trend-badge trend-up" id="trend-usd">+0.00%</span>
+          </div>
+          <div id="card-adur-usd" class="rate-card-value">$15.20</div>
+          <div class="rate-card-sub">
+            <span>NASDAQ: ADUR</span>
+            <span class="pulse-dot" style="background: var(--neon-cyan);"></span>
+          </div>
+        </div>
+
+        <div class="rate-card" id="card-wrap-sek">
+          <div class="rate-card-header">
+            <span class="rate-currency-label">🇸🇪 Svenska Kronor</span>
+            <span class="rate-trend-badge trend-up" id="trend-sek">Live SEK</span>
+          </div>
+          <div id="card-adur-sek" class="rate-card-value">-- kr</div>
+          <div class="rate-card-sub">
+            <span>SEK per aktie</span>
+            <span class="pulse-dot" style="background: var(--neon-green);"></span>
+          </div>
+        </div>
+
+        <div class="rate-card" id="card-wrap-eur">
+          <div class="rate-card-header">
+            <span class="rate-currency-label">🇪🇺 Euro</span>
+            <span class="rate-trend-badge trend-up" id="trend-eur">Live EUR</span>
+          </div>
+          <div id="card-adur-eur" class="rate-card-value">€--</div>
+          <div class="rate-card-sub">
+            <span>EUR per aktie</span>
+            <span class="pulse-dot" style="background: var(--neon-purple);"></span>
+          </div>
+        </div>
+
+        <div class="rate-card" id="card-wrap-dkk">
+          <div class="rate-card-header">
+            <span class="rate-currency-label">🇩🇰 Danska Kronor</span>
+            <span class="rate-trend-badge trend-up" id="trend-dkk">Live DKK</span>
+          </div>
+          <div id="card-adur-dkk" class="rate-card-value">-- kr</div>
+          <div class="rate-card-sub">
+            <span>DKK per aktie</span>
+            <span class="pulse-dot" style="background: var(--neon-amber);"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- TradingView Single Quote Bar (Officiell live-kurs) -->
+      <div class="card" style="padding: 0; overflow: hidden; height: 68px;">
+        <span class="hud-corner hud-tl"></span>
+        <span class="hud-corner hud-tr"></span>
+        <span class="hud-corner hud-bl"></span>
+        <span class="hud-corner hud-br"></span>
+        <div class="tradingview-widget-container">
+          <div class="tradingview-widget-container__widget"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js" async>
+          {
+            "symbol": "NASDAQ:ADUR",
+            "width": "100%",
+            "isTransparent": true,
+            "colorTheme": "dark",
+            "locale": "sv"
+          }
+          </script>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==========================================================================
+         MAIN CONTENT DASHBOARD
+         ========================================================================== -->
+    <main class="main-dashboard">
+
+      <!-- 1. HUVUDGRAF: REAL-TIME LINEAR GRAPH (MERPARTEN AV SIDAN) -->
+      <section class="card chart-hero-card" aria-label="Realtidsgraf för ADUR">
+        <span class="hud-corner hud-tl"></span>
+        <span class="hud-corner hud-tr"></span>
+        <span class="hud-corner hud-bl"></span>
+        <span class="hud-corner hud-br"></span>
+
+        <div class="chart-header">
+          <div class="chart-title-group">
+            <h2 class="chart-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                <polyline points="16 7 22 7 22 13"></polyline>
+              </svg>
+              ADUR Realtidsdiagram
+            </h2>
+            <span id="active-style-label" class="chart-style-pill">Linjär Area-Graf</span>
+          </div>
+
+          <div class="chart-actions">
+            <div class="style-selector" role="group" aria-label="Grafstil">
+              <button class="style-btn active" data-style="3" title="Linjär kurva med fyllning (Standard)">Linjär Area</button>
+              <button class="style-btn" data-style="2" title="Ren linjär graf">Linje</button>
+              <button class="style-btn" data-style="1" title="Japanska ljusstakar">Candles</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TradingView Interactive Widget Container -->
+        <div class="chart-body" id="tradingview_adur_wrapper">
+          <div id="tradingview_adur" style="height: 100%; width: 100%;"></div>
+        </div>
+      </section>
+
+      <!-- 2. SECONDARY GRID: VALUTA / KALKYLATOR & SENASTE NYHETER / METRICS -->
+      <div class="secondary-grid">
+
+        <!-- VÄNSTER: VALUTAVÄXLING & AKTIEKALKYLATOR -->
+        <section class="card converter-card" aria-label="Valutakurser och kalkylator">
+          <span class="hud-corner hud-tl"></span>
+          <span class="hud-corner hud-tr"></span>
+          <span class="hud-corner hud-bl"></span>
+          <span class="hud-corner hud-br"></span>
+
+          <div class="panel-header">
+            <h3 class="panel-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+                <path d="M12 18V6"></path>
+              </svg>
+              Valutaväxling & Portföljkalkylator
+            </h3>
+            <button id="btn-sync-rates" class="btn" title="Hämta senaste växelkurserna">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              <span>Synka Kurser</span>
+            </button>
+          </div>
+
+          <div class="panel-body">
+            <!-- Kalkylator Inputs -->
+            <div class="converter-input-group">
+              <div class="input-row">
+                <div class="input-field-wrapper">
+                  <label class="input-label" for="calc-shares">Antal ADUR Aktier:</label>
+                  <input type="number" id="calc-shares" class="calc-input" value="100" min="1" step="1">
+                </div>
+                <div class="input-field-wrapper">
+                  <label class="input-label" for="calc-price-usd">Aktiekurs (USD $):</label>
+                  <input type="number" id="calc-price-usd" class="calc-input" value="15.20" step="0.01">
+                </div>
+              </div>
+            </div>
+
+            <!-- Kalkylator Beräknat Värde i 4 valutor -->
+            <div class="metrics-row" style="margin-bottom: 22px;">
+              <div class="metric-box">
+                <span class="metric-title">Värde i SEK</span>
+                <span id="res-sek" class="metric-value">-- kr</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Värde i EUR</span>
+                <span id="res-eur" class="metric-value">€--</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Värde i DKK</span>
+                <span id="res-dkk" class="metric-value">-- kr</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Värde i USD</span>
+                <span id="res-usd" class="metric-value">$--</span>
+              </div>
+            </div>
+
+            <!-- Aktuell Valutakurstabell (DKK, EUR, SEK, USD) -->
+            <div class="currency-table-wrapper">
+              <table class="currency-table">
+                <thead>
+                  <tr>
+                    <th>Valutapar</th>
+                    <th>Växelkurs</th>
+                    <th>Valutaslag</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>1 USD / SEK</strong></td>
+                    <td id="rate-usd-sek">-- SEK</td>
+                    <td>Dollar till Svenska Kronor</td>
+                  </tr>
+                  <tr>
+                    <td><strong>1 USD / EUR</strong></td>
+                    <td id="rate-usd-eur">-- EUR</td>
+                    <td>Dollar till Euro</td>
+                  </tr>
+                  <tr>
+                    <td><strong>1 USD / DKK</strong></td>
+                    <td id="rate-usd-dkk">-- DKK</td>
+                    <td>Dollar till Danska Kronor</td>
+                  </tr>
+                  <tr>
+                    <td><strong>1 EUR / SEK</strong></td>
+                    <td id="rate-eur-sek">-- SEK</td>
+                    <td>Euro till Svenska Kronor</td>
+                  </tr>
+                  <tr>
+                    <td><strong>1 EUR / DKK</strong></td>
+                    <td id="rate-eur-dkk">-- DKK</td>
+                    <td>Euro till Danska Kronor</td>
+                  </tr>
+                  <tr>
+                    <td><strong>1 DKK / SEK</strong></td>
+                    <td id="rate-dkk-sek">-- SEK</td>
+                    <td>Danska till Svenska Kronor</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="info-callout">
+              <p>⚡ <b>Realtidssynkronisering:</b> Valutakurser och aktievärden räknas om live i millisekundstempo med responsiv feedback.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- HÖGER: SENASTE NYHETER & BOLAGSINFORMATION (ADUR) -->
+        <section class="card news-card" aria-label="Senaste nyheter om ADUR">
+          <span class="hud-corner hud-tl"></span>
+          <span class="hud-corner hud-tr"></span>
+          <span class="hud-corner hud-bl"></span>
+          <span class="hud-corner hud-br"></span>
+
+          <div class="panel-header">
+            <h3 class="panel-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+              </svg>
+              Senaste Nyheter & Händelser (ADUR)
+            </h3>
+          </div>
+
+          <div class="panel-body">
+            <!-- Bolagsnyckeltal Snabböversikt -->
+            <div class="metrics-row">
+              <div class="metric-box">
+                <span class="metric-title">Börs</span>
+                <span class="metric-value">NASDAQ</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Sektor</span>
+                <span class="metric-value">CleanTech</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Kärnteknik</span>
+                <span class="metric-value">HCT™</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-title">Huvudkontor</span>
+                <span class="metric-value">Kanada</span>
+              </div>
+            </div>
+
+            <!-- Nyhetslista med de senaste faktiska milstolparna -->
+            <div class="news-list">
+              <!-- Nyhet 1 -->
+              <article class="news-item" data-category="operations">
+                <div class="news-meta">
+                  <span class="news-badge">Drift & Teknologi</span>
+                  <time datetime="2026-07-30">Juli 2026</time>
+                </div>
+                <h4 class="news-title">Uinta Basin Råoljeavtal Säkrat & Kontinuerlig Enhet Slutförd</h4>
+                <p class="news-snippet">Aduro Clean Technologies har säkrat råoljeförsörjning från Uinta Basin och slutfört den kontinuerliga pilotenheten för paraffinisk råolja, vilket tar programmet direkt in i teknologidemonstrationsfasen.</p>
+              </article>
+
+              <!-- Nyhet 2 -->
+              <article class="news-item" data-category="finance">
+                <div class="news-meta">
+                  <span class="news-badge">Kapitalanskaffning</span>
+                  <time datetime="2026-06-24">Juni 2026</time>
+                </div>
+                <h4 class="news-title">Aduro Stänger LIFE-emission om ~9.16M CAD för Industriell Demonstrationsanläggning (FOAK)</h4>
+                <p class="news-snippet">Slutförande av icke-förmedlad privatplacering ("LIFE Offering") på US$15.20 (C$21.20) per aktie. Kapitalet finansierar design, konstruktion och uppförande av den första industriella anläggningen i full skala.</p>
+              </article>
+
+              <!-- Nyhet 3 -->
+              <article class="news-item" data-category="finance">
+                <div class="news-meta">
+                  <span class="news-badge">Offentligt Erbjudande</span>
+                  <time datetime="2026-06-11">Juni 2026</time>
+                </div>
+                <h4 class="news-title">Framgångsrikt Offentligt Erbjudande inbringar 15.6M USD</h4>
+                <p class="news-snippet">Stängning av garanterat offentligt erbjudande av 1 028 645 stamaktier till kursen 15,20 USD per aktie för att accelerera den kommersiella utrullningen av Hydrochemolytic™ Technology (HCT).</p>
+              </article>
+
+              <!-- Nyhet 4 -->
+              <article class="news-item" data-category="partnerships">
+                <div class="news-meta">
+                  <span class="news-badge">Partnerskap</span>
+                  <time datetime="2026-05-15">Maj 2026</time>
+                </div>
+                <h4 class="news-title">Samarbete med ECOCE för Cirkulär Plaståtervinning</h4>
+                <p class="news-snippet">Aduro fördjupar samarbetet i Nordamerika och Mexiko för att omvandla svåråtervunna plastfraktioner till högkvalitativa kemiska råvaror via vattenbaserad HCT-återvinning.</p>
+              </article>
+            </div>
+
+            <div class="info-callout">
+              <p><b>Om Aduro Clean Technologies:</b> Aduro utvecklar patenterad vattenbaserad Hydrochemolytic™-teknologi som omvandlar plastavfall, tunga råoljor och förnyelsebara oljor till värdefulla resurser och bränslen vid betydligt lägre temperaturer och energiförbrukning än traditionell pyrolys.</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 3. DJUPGÅENDE TEKNISK ANALYS & SYMBOL INFO -->
+      <section class="card" style="padding: 0; overflow: hidden;" aria-label="Teknisk analys">
+        <span class="hud-corner hud-tl"></span>
+        <span class="hud-corner hud-tr"></span>
+        <span class="hud-corner hud-bl"></span>
+        <span class="hud-corner hud-br"></span>
+
+        <div class="panel-header">
+          <h3 class="panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18"></path>
+              <path d="M18 17V9"></path>
+              <path d="M13 17V5"></path>
+              <path d="M8 17v-3"></path>
+            </svg>
+            Teknisk Sammanfattning & Nyckeltal
+          </h3>
+        </div>
+        <div style="height: 380px; width: 100%;">
+          <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js" async>
+            {
+              "interval": "15m",
+              "width": "100%",
+              "isTransparent": true,
+              "height": "100%",
+              "symbol": "NASDAQ:ADUR",
+              "showIntervalTabs": true,
+              "displayMode": "single",
+              "locale": "sv",
+              "colorTheme": "dark"
+            }
+            </script>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ==========================================================================
+         FOOTER
+         ========================================================================== -->
+    <footer class="site-footer">
+      <div class="footer-content">
+        <div class="refresh-status">
+          <span class="pulse-dot" style="background-color: var(--neon-cyan);"></span>
+          <span>Telemetri-cykel: <strong id="refresh-countdown">5:00</strong></span>
+        </div>
+        <p>Finansiell telemetri & diagram strömmas via TradingView & öppna växelkursprotokoll.</p>
+        <p>© 2026 ADUR Cosmic Hub • Aduro Clean Technologies Inc. (NASDAQ: ADUR)</p>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Applikationslogik -->
+  <script src="app.js"></script>
+</body>
+</html>
